@@ -51,7 +51,9 @@ from vulnclaw.agent.think_filter import format_think_tags, strip_think_tags
 from vulnclaw.config.settings import (
     apply_provider_preset,
     list_providers,
+    llm_auth_ready,
     load_config,
+    provider_requires_api_key,
     save_config,
     set_config_value,
 )
@@ -152,7 +154,7 @@ def _run_repl() -> None:
     _print_banner()
 
     config = load_config()
-    if not config.llm.api_key:
+    if not llm_auth_ready(config.llm.provider, config.llm.api_key):
         console.print(
             "[!] No LLM API key detected. Run [bold]vulnclaw config set llm.api_key <your-key>[/] first."
         )
@@ -707,7 +709,7 @@ def run(
 ) -> None:
     """Run a full authorized pentest workflow."""
     config = load_config()
-    if not config.llm.api_key:
+    if not llm_auth_ready(config.llm.provider, config.llm.api_key):
         err_console.print("[!] Configure an LLM API key first.")
         raise typer.Exit(1)
 
@@ -793,7 +795,7 @@ def persistent(
     from vulnclaw.agent.core import PersistentCycleResult
 
     config = load_config()
-    if not config.llm.api_key:
+    if not llm_auth_ready(config.llm.provider, config.llm.api_key):
         err_console.print("[!] Configure an LLM API key first.")
         raise typer.Exit(1)
 
@@ -1210,7 +1212,7 @@ def config_provider(
     console.print(f"    Base URL: [dim]{config.llm.base_url}[/]")
     console.print(f"    Model:    [dim]{config.llm.model}[/]")
 
-    if not config.llm.api_key:
+    if not llm_auth_ready(config.llm.provider, config.llm.api_key):
         console.print()
         console.print(
             "[yellow]Set an API key first: [bold]vulnclaw config set llm.api_key <your-key>[/][/]"
@@ -1295,10 +1297,12 @@ def doctor() -> None:
     config = load_config()
     console.print()
     console.print("[bold]LLM Config[/]:")
+    requires_key = provider_requires_api_key(config.llm.provider)
     has_key = bool(config.llm.api_key)
+    auth_ready = llm_auth_ready(config.llm.provider, config.llm.api_key)
     console.print(f"  Provider: [bold cyan]{config.llm.provider}[/]")
     console.print(
-        f"  API Key: [{'green' if has_key else 'red'}]{'configured' if has_key else 'not set'}[/]"
+        f"  API Key: [{'green' if auth_ready else 'red'}]{'configured' if has_key else ('not required' if not requires_key else 'not set')}[/]"
     )
     console.print(f"  Base URL: [dim]{config.llm.base_url}[/]")
     console.print(f"  Model: [dim]{config.llm.model}[/]")
@@ -1333,7 +1337,7 @@ def doctor() -> None:
     )
 
     console.print()
-    if has_key:
+    if auth_ready:
         console.print("[green]Environment ready. Run [bold]vulnclaw[/] to start.[/]")
     else:
         console.print(

@@ -17,7 +17,14 @@ from rich.prompt import Confirm, Prompt
 from rich.table import Table
 from rich.text import Text
 
-from vulnclaw.config.settings import apply_provider_preset, list_providers, load_config, save_config
+from vulnclaw.config.settings import (
+    apply_provider_preset,
+    list_providers,
+    llm_auth_ready,
+    load_config,
+    provider_requires_api_key,
+    save_config,
+)
 from vulnclaw.target_state.store import get_target_state_preview, list_target_snapshots
 
 CheckMode = Literal["quick", "standard", "deep", "continuous"]
@@ -204,7 +211,7 @@ def build_dashboard(config, state: TuiState) -> Group:
     mode = MODES[state.mode]
     provider = getattr(config.llm, "provider", "unknown")
     model = getattr(config.llm, "model", "unknown")
-    api_ready = bool(getattr(config.llm, "api_key", ""))
+    api_ready = llm_auth_ready(provider, getattr(config.llm, "api_key", ""))
     overview = build_target_overview(state.target)
 
     title = Text("VulnClaw TUI 工作台", style="bold cyan")
@@ -384,7 +391,7 @@ def build_runtime_diagnostic(config) -> TuiRuntimeDiagnostic:
     """Collect runtime readiness without leaving the TUI."""
     provider = str(getattr(config.llm, "provider", "unknown"))
     model = str(getattr(config.llm, "model", "unknown"))
-    api_key_configured = bool(getattr(config.llm, "api_key", ""))
+    api_key_configured = llm_auth_ready(provider, getattr(config.llm, "api_key", ""))
 
     node_version = _command_version("node", "--version") or "missing"
     npx_status = "installed" if shutil.which("npx") else "missing"
@@ -647,7 +654,11 @@ def _prompt_llm_config(screen: Console, config):
 
     base_url = Prompt.ask("Base URL", default=config.llm.base_url).strip()
     model = Prompt.ask("Model", default=config.llm.model).strip()
-    current_key = "已配置，留空保持不变" if config.llm.api_key else "未配置"
+    current_key = (
+        "已配置，留空保持不变"
+        if config.llm.api_key
+        else ("本地端点无需 API Key" if not provider_requires_api_key(config.llm.provider) else "未配置")
+    )
     api_key = Prompt.ask("API Key（留空保持不变）", default="").strip()
 
     if base_url:

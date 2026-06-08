@@ -286,9 +286,10 @@ def build_round_context(agent: Any, round_num: int, max_rounds: int) -> str:
         f"{flag_warning}"
         f"{ctf_mode_warning}"
         f"{recon_dim_status}"
-        f"\n\n请基于当前状态和之前所有发现决定下一步操作，持续推进渗透测试。"
-        f"\n注意：不要重复之前已经做过的操作，专注于推进到下一步。"
-        f"\n如果发现重要线索或完成测试，在回复末尾添加 [DONE] 标记。"
+        f"\n\n請使用繁體中文輸出所有面向使用者的自然語言內容。"
+        f"\n請基於目前狀態和先前所有發現決定下一步操作，持續推進滲透測試。"
+        f"\n注意：不要重複先前已經做過的操作，專注於推進到下一步。"
+        f"\n如果發現重要線索或完成測試，在回覆末尾添加 [DONE] 標記。"
     )
 
 
@@ -315,17 +316,17 @@ async def generate_attack_summary(agent: Any) -> str:
         findings_text = "无"
 
     prompt = (
-        f"目标：{state.target or '?'}  |  当前阶段：{state.phase.value}\n"
-        f"\n=== 已执行步骤 ===\n{steps_text}\n"
-        f"\n=== 关键观察/结果 ===\n{notes_text}\n"
-        f"\n=== 漏洞发现 ===\n{findings_text}\n\n"
-        f"请输出一段详细的中文攻击路径叙事，包含以下要素：\n"
-        f"1. 具体测试过的 URL/路径（如 https://target.com/admin/login）\n"
-        f"2. 每步使用的具体技术/工具（如 SQLMap 盲注、目录枚举、nmap 端口扫描）\n"
-        f"3. 关键响应特征（如差异长度155字节、HTTP 500错误回显）\n"
-        f"4. 漏洞与攻击面的关联（如通过目录枚举发现 /manager/html，命中 CVE-2023-44487）\n"
-        f"5. 子域名发现情况（如发现 api.target.com、cms.target.com 等）\n"
-        f"格式要求：用自然段落叙事，不用列表，长度 200-400 字，纯中文，不含 <thinking> 标签。"
+        f"目標：{state.target or '?'}  |  目前階段：{state.phase.value}\n"
+        f"\n=== 已執行步驟 ===\n{steps_text}\n"
+        f"\n=== 關鍵觀察/結果 ===\n{notes_text}\n"
+        f"\n=== 漏洞發現 ===\n{findings_text}\n\n"
+        f"請輸出一段詳細的繁體中文攻擊路徑敘事，包含以下要素：\n"
+        f"1. 具體測試過的 URL/路徑（如 https://target.com/admin/login）\n"
+        f"2. 每步使用的具體技術/工具（如 SQLMap 盲注、目錄列舉、nmap 連接埠掃描）\n"
+        f"3. 關鍵回應特徵（如差異長度 155 位元組、HTTP 500 錯誤回顯）\n"
+        f"4. 漏洞與攻擊面的關聯（如透過目錄列舉發現 /manager/html，命中 CVE-2023-44487）\n"
+        f"5. 子網域發現情況（如發現 api.target.com、cms.target.com 等）\n"
+        f"格式要求：用自然段落敘事，不用列表，長度 200-400 字，純繁體中文，不含 <thinking> 標籤。"
     )
 
     try:

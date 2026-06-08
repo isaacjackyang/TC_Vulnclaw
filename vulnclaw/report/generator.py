@@ -14,48 +14,48 @@ from vulnclaw.agent.context import SessionState, VulnerabilityFinding
 # ── Report Template ─────────────────────────────────────────────────
 
 REPORT_TEMPLATE = """\
-# 渗透测试报告
+# 滲透測試報告
 
-## 1. 项目概述
+## 1. 專案概述
 
-| 项目 | 详情 |
+| 項目 | 詳情 |
 |------|------|
-| **测试目标** | {{ target }} |
-| **测试时间** | {{ started_at }} |
-| **报告生成** | {{ generated_at }} |
-| **测试工具** | VulnClaw v{{ version }} |
-| **任务约束** | {{ task_constraints_summary }} |
+| **測試目標** | {{ target }} |
+| **測試時間** | {{ started_at }} |
+| **報告產生時間** | {{ generated_at }} |
+| **測試工具** | VulnClaw v{{ version }} |
+| **任務限制** | {{ task_constraints_summary }} |
 
-## 2. 执行摘要
+## 2. 執行摘要
 
 {% if verified_count > 0 %}
-- **已验证漏洞**: {{ verified_count }} 个（其中高危 {{ critical_count }} 个 Critical, {{ high_count }} 个 High）
+- **已驗證漏洞**: {{ verified_count }} 個（其中高風險 {{ critical_count }} 個 Critical, {{ high_count }} 個 High）
 {% else %}
-- **已验证漏洞**: 0 个
+- **已驗證漏洞**: 0 個
 {% endif %}
-- **误报排除**: {{ rejected_count }} 个
-- **待验证**: {{ pending_count }} 个（未在报告中显示）
-- **候选项**: {{ candidate_count }} 个
-- **待验证项**: {{ pending_verification_count }} 个
-- **需人工复核**: {{ manual_review_count }} 个
-- **攻击面**: {{ attack_surface_summary }}
+- **誤報排除**: {{ rejected_count }} 個
+- **待驗證**: {{ pending_count }} 個（未在報告中顯示）
+- **候選項**: {{ candidate_count }} 個
+- **待驗證項**: {{ pending_verification_count }} 個
+- **需人工覆核**: {{ manual_review_count }} 個
+- **攻擊面**: {{ attack_surface_summary }}
 {% if constraint_violation_events or constraint_violations %}
-- **约束违规已阻断**: {{ constraint_violations|length }} 次
+- **限制違規已阻擋**: {{ constraint_violations|length }} 次
 {% endif %}
 
 {% if rejected_count > 0 %}
-### 已排除的误报
+### 已排除的誤報
 
-以下漏洞假设经 PoC 验证失败，已排除，不计入报告：
+以下漏洞假設經 PoC 驗證失敗，已排除，不計入報告：
 
 {% for f in rejected_findings %}
 - {{ f.title }} — {{ f.verification_note }}
 {% endfor %}
 {% endif %}
 
-### 风险等级分布
+### 風險等級分布
 
-| 等级 | 数量 |
+| 等級 | 數量 |
 |------|------|
 | Critical | {{ critical_count }} |
 | High | {{ high_count }} |
@@ -63,77 +63,77 @@ REPORT_TEMPLATE = """\
 | Low/Info | {{ low_count }} |
 
 {% if verified_findings %}
-### 关键建议
+### 關鍵建議
 
 {% for rec in key_recommendations %}
 {{ loop.index }}. {{ rec }}
 {% endfor %}
 {% else %}
-### 漏洞发现
+### 漏洞發現
 
-**本次测试未发现有效漏洞。**
+**本次測試未發現有效漏洞。**
 
 可能原因：
-- 目标系统安全配置较好
-- 渗透深度不够（信息收集轮数不足）
-- 漏洞利用条件未满足
+- 目標系統安全設定較完整
+- 滲透深度不足（資訊收集輪數不足）
+- 漏洞利用條件未滿足
 
-建议：
-- 增加渗透测试轮数
-- 尝试更多漏洞类型
-- 检查是否需要特殊认证或访问权限
+建議：
+- 增加滲透測試輪數
+- 嘗試更多漏洞類型
+- 檢查是否需要特殊認證或存取權限
 {% endif %}
 
-## 3. 详细发现
+## 3. 詳細發現
 
 {% for finding in findings %}
 ### 3.{{ loop.index }} {{ finding.title }} — [{{ finding.severity }}]
 {% if finding.verification_status == "pending" %}
-> ⚠️ **待验证** — 此漏洞由自动检测发现，尚未通过 PoC 验证。请手动审查。
+> ⚠️ **待驗證** — 此漏洞由自動偵測發現，尚未通過 PoC 驗證。請手動審查。
 {% elif finding.verification_status == "rejected" %}
-> ❌ **已排除（误报）** — {{ finding.verification_note or "经验证为误报" }}
+> ❌ **已排除（誤報）** — {{ finding.verification_note or "經驗證為誤報" }}
 {% elif finding.lifecycle_status == "needs_manual_review" %}
-> 🔎 **需人工复核** — 当前已有间接证据，但仍需人工复核后再升级为正式漏洞。
+> 🔎 **需人工覆核** — 目前已有間接證據，但仍需人工覆核後再升級為正式漏洞。
 {% endif %}
 
-- **漏洞类型**: {{ finding.vuln_type or "未分类" }}
-- **生命周期**: {{ finding.lifecycle_status or "pending_verification" }}
-- **证据等级**: {{ finding.evidence_level or "L1" }}
+- **漏洞類型**: {{ finding.vuln_type or "未分類" }}
+- **生命週期**: {{ finding.lifecycle_status or "pending_verification" }}
+- **證據等級**: {{ finding.evidence_level or "L1" }}
 - **CVE**: {{ finding.cve or "N/A" }}
-- **影响范围**: {{ finding.description or "无" }}
+- **影響範圍**: {{ finding.description or "無" }}
 {% if finding.evidence %}
-- **验证证据**: {{ finding.evidence }}
+- **驗證證據**: {{ finding.evidence }}
 {% endif %}
 {% if finding.poc_script %}
-- **PoC 脚本**: 见附件 `{{ finding.poc_script }}`
+- **PoC 腳本**: 見附件 `{{ finding.poc_script }}`
 {% endif %}
-- **修复建议**: {{ finding.remediation or "请根据漏洞类型采取相应修复措施" }}
+- **修復建議**: {{ finding.remediation or "請依漏洞類型採取相應修復措施" }}
 {% if finding.verified and finding.verified_at %}
-- **验证时间**: {{ finding.verified_at }}
+- **驗證時間**: {{ finding.verified_at }}
 {% endif %}
 
 {% endfor %}
 
 {% if llm_attack_summary %}
-## 4. 攻击路径摘要
+## 4. 攻擊路徑摘要
 
 {{ llm_attack_summary }}
 
 {% elif step_summary and step_summary.total_steps > 0 %}
-## 4. 攻击路径摘要
+## 4. 攻擊路徑摘要
 
 {% for phase_name, phase_data in step_summary.phases.items() %}
 ### {{ phase_name }}（共 {{ phase_data.count }} 步）
 
-| 状态 | 数量 |
+| 狀態 | 數量 |
 |------|------|
 | ✅ 成功 | {{ phase_data.success_count }} |
-| ❌ 失败 | {{ phase_data.failure_count }} |
+| ❌ 失敗 | {{ phase_data.failure_count }} |
 
-**关键动作**: {{ phase_data.actions[:5]|join(', ') }}
+**關鍵動作**: {{ phase_data.actions[:5]|join(', ') }}
 
 {% if phase_data.key_results %}
-**主要发现**:
+**主要發現**:
 {% for result in phase_data.key_results %}
 - {{ result }}
 {% endfor %}
@@ -142,10 +142,10 @@ REPORT_TEMPLATE = """\
 ---
 {% endfor %}
 
-**总计**: {{ step_summary.total_steps }} 步
+**總計**: {{ step_summary.total_steps }} 步
 
 {% if step_summary.key_findings %}
-### 关键发现时间线
+### 關鍵發現時間線
 
 {% for finding in step_summary.key_findings %}
 - {{ finding }}
@@ -153,7 +153,7 @@ REPORT_TEMPLATE = """\
 {% endif %}
 
 {% elif findings %}
-## 4. 攻击路径
+## 4. 攻擊路徑
 
 {% for step in executed_steps %}
 {{ loop.index }}. {{ step }}
@@ -161,7 +161,7 @@ REPORT_TEMPLATE = """\
 {% endif %}
 
 {% if constraint_violation_events or constraint_violations %}
-## 5. 约束违规审计
+## 5. 限制違規稽核
 
 {% if constraint_violation_events %}
 {% for item in constraint_violation_events %}
@@ -176,14 +176,14 @@ REPORT_TEMPLATE = """\
 
 ## 6. 附件
 
-- PoC 脚本: 见 `pocs/` 目录
-- 流量抓包: 见 `captures/` 目录
-- 截图证据: 见 `screenshots/` 目录
+- PoC 腳本: 見 `pocs/` 目錄
+- 流量封包: 見 `captures/` 目錄
+- 截圖證據: 見 `screenshots/` 目錄
 
 ---
 
-> 🦞 报告由 VulnClaw 自动生成 | {{ generated_at }}
-> **原则**: 未经验证的漏洞 = 误报 = 不写入报告
+> 🦞 報告由 VulnClaw 自動產生 | {{ generated_at }}
+> **原則**: 未經驗證的漏洞 = 誤報 = 不寫入報告
 """
 
 
@@ -231,15 +231,15 @@ def generate_report(
     recommendations = []
     for finding in verified_findings:
         if finding.severity in ("Critical", "High"):
-            vt = finding.vuln_type or "未分类"
+            vt = finding.vuln_type or "未分類"
             if vt in seen_vuln_types:
                 continue
             seen_vuln_types.add(vt)
-            rec = finding.remediation or f"请优先修复 {vt} 风险: {finding.title}"
+            rec = finding.remediation or f"請優先修復 {vt} 風險: {finding.title}"
             recommendations.append(rec)
 
     if not recommendations:
-        recommendations.append("优先复核攻击面并补充验证链路，确认高风险入口已完成修复。")
+        recommendations.append("請優先覆核攻擊面並補齊驗證鏈路，確認高風險入口已完成修復。")
 
     if output_path is None:
         from vulnclaw.config.settings import SESSIONS_DIR
@@ -301,7 +301,7 @@ def generate_report(
     if verified_findings:
         report_content += "\n\n" + _render_verified_finding_details_clean(
             verified_findings,
-            heading="## 6. 已验证漏洞定位与复现信息",
+            heading="## 6. 已驗證漏洞定位與重現資訊",
         )
     if target_state_context:
         report_content += "\n\n" + _render_target_state_context(target_state_context)
@@ -371,66 +371,66 @@ def _summarize_attack_surface(session: SessionState) -> str:
 # ── Persistent Pentest Cycle Report ──────────────────────────────────
 
 CYCLE_REPORT_TEMPLATE = """\
-# 持续性渗透测试 — 周期报告
+# 持續性滲透測試 — 週期報告
 
-## 周期信息
+## 週期資訊
 
-| 项目 | 详情 |
+| 項目 | 詳情 |
 |------|------|
-| **测试目标** | {{ target }} |
-| **当前周期** | 第 {{ cycle_num }} 周期 |
-| **每周期轮数** | {{ rounds_per_cycle }} |
-| **本周期新增已验证漏洞** | {{ new_findings }} 个 |
-| **累计已验证漏洞** | {{ total_findings }} 个 |
-| **累计执行步骤** | {{ total_steps }} 个 |
-| **报告生成时间** | {{ generated_at }} |
+| **測試目標** | {{ target }} |
+| **目前週期** | 第 {{ cycle_num }} 週期 |
+| **每週期輪數** | {{ rounds_per_cycle }} |
+| **本週期新增已驗證漏洞** | {{ new_findings }} 個 |
+| **累計已驗證漏洞** | {{ total_findings }} 個 |
+| **累計執行步驟** | {{ total_steps }} 個 |
+| **報告產生時間** | {{ generated_at }} |
 
 {% if cycle_findings %}
-## 本周期漏洞发现
+## 本週期漏洞發現
 
 {% for finding in cycle_findings %}
 ### {{ loop.index }}. {{ finding.title }} — [{{ finding.severity }}]
 {% if finding.verification_status == "pending" %}
-> ⚠️ **待验证** — 此漏洞由自动检测发现，尚未通过 PoC 验证。
+> ⚠️ **待驗證** — 此漏洞由自動偵測發現，尚未通過 PoC 驗證。
 {% elif finding.lifecycle_status == "needs_manual_review" %}
-> 🔎 **需人工复核** — 当前已有间接证据，但仍需人工复核后再升级为正式漏洞。
+> 🔎 **需人工覆核** — 目前已有間接證據，但仍需人工覆核後再升級為正式漏洞。
 {% endif %}
-- **漏洞类型**: {{ finding.vuln_type or "未分类" }}
-- **生命周期**: {{ finding.lifecycle_status or "pending_verification" }}
-- **证据等级**: {{ finding.evidence_level or "L1" }}
+- **漏洞類型**: {{ finding.vuln_type or "未分類" }}
+- **生命週期**: {{ finding.lifecycle_status or "pending_verification" }}
+- **證據等級**: {{ finding.evidence_level or "L1" }}
 - **CVE**: {{ finding.cve or "N/A" }}
-- **影响范围**: {{ finding.description or "无" }}
+- **影響範圍**: {{ finding.description or "無" }}
 {% if finding.evidence %}
-- **验证证据**: {{ finding.evidence }}
+- **驗證證據**: {{ finding.evidence }}
 {% endif %}
-- **修复建议**: {{ finding.remediation or "请根据漏洞类型采取相应修复措施" }}
+- **修復建議**: {{ finding.remediation or "請依漏洞類型採取相應修復措施" }}
 {% if finding.verified_at %}
-- **验证时间**: {{ finding.verified_at }}
+- **驗證時間**: {{ finding.verified_at }}
 {% endif %}
 
 {% endfor %}
 {% else %}
-## 本周期漏洞发现
+## 本週期漏洞發現
 
-本周期未发现新漏洞。
+本週期未發現新漏洞。
 {% endif %}
 
-## 累计漏洞汇总
+## 累計漏洞彙總
 
-| # | 漏洞标题 | 等级 | 类型 | 证据/URL | 状态 |
+| # | 漏洞標題 | 等級 | 類型 | 證據/URL | 狀態 |
 |---|---------|------|------|---------|------|
 {% for finding in all_findings %}
 {% set ev = (finding.evidence or finding.description or "")[:80] %}
-| {{ loop.index }} | {{ finding.title }} | {{ finding.severity }} | {{ finding.vuln_type or "—" }} | {{ ev if ev else "—" }} | {% if finding.verification_status == "verified" %}✅ 已验证{% elif finding.lifecycle_status == "needs_manual_review" %}🔎 需人工复核{% elif finding.verification_status == "pending" %}⚠️ 待验证{% else %}❌ 已排除{% endif %} |
+| {{ loop.index }} | {{ finding.title }} | {{ finding.severity }} | {{ finding.vuln_type or "—" }} | {{ ev if ev else "—" }} | {% if finding.verification_status == "verified" %}✅ 已驗證{% elif finding.lifecycle_status == "needs_manual_review" %}🔎 需人工覆核{% elif finding.verification_status == "pending" %}⚠️ 待驗證{% else %}❌ 已排除{% endif %} |
 {% endfor %}
 
 {% if not all_findings %}
-暂未发现漏洞
+暫未發現漏洞
 {% endif %}
 
-## 风险等级分布
+## 風險等級分布
 
-| 等级 | 数量 |
+| 等級 | 數量 |
 |------|------|
 | Critical | {{ critical_count }} |
 | High | {{ high_count }} |
@@ -438,25 +438,25 @@ CYCLE_REPORT_TEMPLATE = """\
 | Low/Info | {{ low_count }} |
 
 {% if llm_attack_summary %}
-## 攻击路径摘要
+## 攻擊路徑摘要
 
 {{ llm_attack_summary }}
 
 {% elif step_summary and step_summary.total_steps > 0 %}
-## 攻击路径摘要
+## 攻擊路徑摘要
 
 {% for phase_name, phase_data in step_summary.phases.items() %}
 ### {{ phase_name }}（共 {{ phase_data.count }} 步）
 
-| 状态 | 数量 |
+| 狀態 | 數量 |
 |------|------|
 | ✅ 成功 | {{ phase_data.success_count }} |
-| ❌ 失败 | {{ phase_data.failure_count }} |
+| ❌ 失敗 | {{ phase_data.failure_count }} |
 
-**关键动作**: {{ phase_data.actions[:5]|join(', ') }}
+**關鍵動作**: {{ phase_data.actions[:5]|join(', ') }}
 
 {% if phase_data.key_results %}
-**主要发现**:
+**主要發現**:
 {% for result in phase_data.key_results %}
 - {{ result }}
 {% endfor %}
@@ -465,10 +465,10 @@ CYCLE_REPORT_TEMPLATE = """\
 ---
 {% endfor %}
 
-**总计**: {{ step_summary.total_steps }} 步
+**總計**: {{ step_summary.total_steps }} 步
 
 {% if step_summary.key_findings %}
-### 关键发现时间线
+### 關鍵發現時間線
 
 {% for finding in step_summary.key_findings %}
 - {{ finding }}
@@ -476,14 +476,14 @@ CYCLE_REPORT_TEMPLATE = """\
 {% endif %}
 
 {% elif recent_steps %}
-## 攻击路径摘要
+## 攻擊路徑摘要
 
 {% for step in recent_steps %}
 {{ loop.index }}. {{ step }}
 {% endfor %}
 {% endif %}
 
-## 关键建议
+## 關鍵建議
 
 {% for rec in recommendations %}
 {{ loop.index }}. {{ rec }}
@@ -491,8 +491,8 @@ CYCLE_REPORT_TEMPLATE = """\
 
 ---
 
-> 🦞 持续性渗透测试周期报告 | VulnClaw | {{ generated_at }}
-> **原则**: 未经验证的漏洞 = 误报 = 不写入报告
+> 🦞 持續性滲透測試週期報告 | VulnClaw | {{ generated_at }}
+> **原則**: 未經驗證的漏洞 = 誤報 = 不寫入報告
 """
 
 
@@ -502,14 +502,18 @@ def _generate_attack_summary_from_session(session: SessionState) -> str:
         from openai import OpenAI
 
         from vulnclaw.agent.think_filter import strip_think_tags
-        from vulnclaw.config.settings import load_config
+        from vulnclaw.config.settings import llm_auth_ready, load_config, provider_requires_api_key
 
         config = load_config()
-        if not config.llm.api_key:
+        if not llm_auth_ready(config.llm.provider, config.llm.api_key):
             return ""
 
+        api_key = config.llm.api_key
+        if not api_key and not provider_requires_api_key(config.llm.provider):
+            api_key = "local-llamacpp"
+
         client = OpenAI(
-            api_key=config.llm.api_key,
+            api_key=api_key,
             base_url=config.llm.base_url,
         )
 
@@ -538,11 +542,11 @@ def _generate_attack_summary_from_session(session: SessionState) -> str:
             f"=== Executed Steps ===\n{steps_text}\n\n"
             f"=== Key Observations ===\n{notes_text}\n\n"
             f"=== Findings ===\n{findings_text}\n\n"
-            "Please write a readable Chinese attack-path summary. Requirements:\n"
+            "Please write a readable Traditional Chinese attack-path summary. Requirements:\n"
             "1. Clearly explain how the testing progressed, not generic filler.\n"
             "2. Mention URLs, paths, parameters, stack, and verification actions when available.\n"
             "3. Explicitly call out false positives or findings that failed to reproduce.\n"
-            "4. Output 2-5 short natural-language paragraphs only. No markdown headings. No thinking tags.\n"
+            "4. Output 2-5 short natural-language paragraphs in Traditional Chinese only. No markdown headings. No thinking tags.\n"
             "5. Do not invent steps that were never executed.\n"
         )
 
@@ -585,11 +589,11 @@ def generate_persistent_cycle_report(
     total_steps: int,
     rounds_per_cycle: int,
     output_path: Optional[str] = None,
-    llm_attack_summary: str = "",  # ★ LLM 生成的攻击路径摘要
+    llm_attack_summary: str = "",  # ★ LLM 產生的攻擊路徑摘要
 ) -> Path:
     """Generate a cycle report for persistent pentest.
 
-    只包含已验证 (verified=True) 的漏洞。
+    只包含已驗證 (verified=True) 的漏洞。
 
     Args:
         session: Current session state with findings.
@@ -623,7 +627,7 @@ def generate_persistent_cycle_report(
         else:
             severity_counts["Medium"] += 1
 
-    # ★ 本周期新增已验证 findings（只统计 verified）
+    # ★ 本週期新增已驗證 findings（只統計 verified）
     cycle_findings = verified_findings[-new_findings:] if new_findings > 0 else []
 
     # Generate recommendations from verified high/critical findings only
@@ -632,14 +636,14 @@ def generate_persistent_cycle_report(
     recommendations = []
     for finding in verified_findings:
         if finding.severity in ("Critical", "High"):
-            vt = finding.vuln_type or "未分类"
+            vt = finding.vuln_type or "未分類"
             if vt in seen_vuln_types:
                 continue
             seen_vuln_types.add(vt)
-            rec = finding.remediation or f"修复 {vt} 漏洞: {finding.title}"
+            rec = finding.remediation or f"修復 {vt} 漏洞: {finding.title}"
             recommendations.append(rec)
     if not recommendations:
-        recommendations.append("暂无高危发现，继续深入测试")
+        recommendations.append("暫無高風險發現，建議持續深入測試")
 
     if output_path is None:
         from vulnclaw.config.settings import SESSIONS_DIR
@@ -661,7 +665,7 @@ def generate_persistent_cycle_report(
     # Recent steps (last 20 to avoid bloat)
     recent_steps = session.executed_steps[-20:]
 
-    # ★ 攻击路径摘要（过滤 LLM 原始输出中的 think 标签 / 调试标记）
+    # ★ 攻擊路徑摘要（過濾 LLM 原始輸出中的 think 標籤 / 除錯標記）
     step_summary = session.get_step_summary()
     from vulnclaw.report.filter import ReportContentFilter
 
@@ -697,7 +701,7 @@ def generate_persistent_cycle_report(
     if verified_findings:
         report_content += "\n\n" + _render_verified_finding_details_clean(
             verified_findings,
-            heading="## 已验证漏洞定位与复现信息",
+            heading="## 已驗證漏洞定位與重現資訊",
         )
     output.write_text(report_content, encoding="utf-8")
 
@@ -711,42 +715,42 @@ def _render_target_state_context(target_state_context: dict[str, Any]) -> str:
     runtime_meta = target_state_context.get("runtime_meta") or {}
     resume_summary = target_state_context.get("resume_summary") or ""
 
-    lines = ["## 6. 目标历史治理上下文"]
+    lines = ["## 6. 目標歷史治理上下文"]
 
     if resume_meta:
         lines.extend(
             [
                 "",
-                f"- 恢复策略: {resume_meta.get('resume_strategy', 'unknown')}",
+                f"- 恢復策略: {resume_meta.get('resume_strategy', 'unknown')}",
                 f"- 策略原因: {resume_meta.get('resume_strategy_reason', 'N/A')}",
             ]
         )
         if resume_meta.get("priority_targets"):
-            lines.append(f"- 恢复优先目标: {', '.join(resume_meta['priority_targets'][:5])}")
+            lines.append(f"- 恢復優先目標: {', '.join(resume_meta['priority_targets'][:5])}")
         if resume_meta.get("priority_recon_assets"):
             lines.append(
-                f"- 恢复优先侦察资产: {', '.join(resume_meta['priority_recon_assets'][:5])}"
+                f"- 恢復優先偵察資產: {', '.join(resume_meta['priority_recon_assets'][:5])}"
             )
         if resume_meta.get("blocked_targets"):
-            lines.append(f"- 已阻塞目标: {', '.join(resume_meta['blocked_targets'][:5])}")
+            lines.append(f"- 已阻擋目標: {', '.join(resume_meta['blocked_targets'][:5])}")
         if resume_meta.get("failed_targets"):
-            lines.append(f"- 历史失败目标: {', '.join(resume_meta['failed_targets'][:5])}")
+            lines.append(f"- 歷史失敗目標: {', '.join(resume_meta['failed_targets'][:5])}")
         if resume_meta.get("recent_failed_steps"):
-            lines.append("- 最近失败路径/步骤:")
+            lines.append("- 最近失敗路徑/步驟:")
             for item in resume_meta["recent_failed_steps"][:5]:
                 lines.append(f"  - {item}")
 
     top_assets = _top_recon_assets_for_report(recon_meta)
     if top_assets:
-        lines.extend(["", "### 高价值侦察资产"])
+        lines.extend(["", "### 高價值偵察資產"])
         for item in top_assets[:8]:
             lines.append(f"- {item}")
 
     if runtime_meta.get("current_attack_path"):
-        lines.extend(["", f"- 最近攻击路径: {runtime_meta['current_attack_path']}"])
+        lines.extend(["", f"- 最近攻擊路徑: {runtime_meta['current_attack_path']}"])
 
     if resume_summary:
-        lines.extend(["", "### 恢复摘要", "```text", resume_summary.strip(), "```"])
+        lines.extend(["", "### 恢復摘要", "```text", resume_summary.strip(), "```"])
 
     return "\n".join(lines)
 
@@ -782,14 +786,14 @@ def _extract_location_summary_clean(finding: VulnerabilityFinding) -> str:
 def _build_repro_summary_clean(finding: VulnerabilityFinding) -> str:
     parts: list[str] = []
     if finding.poc_script:
-        parts.append(f"运行 PoC 脚本: {finding.poc_script}")
+        parts.append(f"執行 PoC 腳本: {finding.poc_script}")
     if finding.verification_note:
-        parts.append(f"验证说明: {finding.verification_note}")
+        parts.append(f"驗證說明: {finding.verification_note}")
     elif finding.evidence:
-        parts.append(f"根据已验证证据复现: {finding.evidence[:160]}")
+        parts.append(f"根據已驗證證據重現: {finding.evidence[:160]}")
     if finding.verified_at:
-        parts.append(f"验证时间: {finding.verified_at}")
-    return "；".join(parts) if parts else "暂无可用复现说明"
+        parts.append(f"驗證時間: {finding.verified_at}")
+    return "；".join(parts) if parts else "暫無可用重現說明"
 
 
 def _render_verified_finding_details_clean(
@@ -797,15 +801,15 @@ def _render_verified_finding_details_clean(
 ) -> str:
     lines = [heading, ""]
     for idx, finding in enumerate(findings, 1):
-        location = _extract_location_summary_clean(finding) or "未定位 / 未提取到 URL"
+        location = _extract_location_summary_clean(finding) or "未定位 / 未擷取到 URL"
         lines.append(f"### {idx}. {finding.title} [{finding.severity}]")
-        lines.append(f"- 漏洞类型: {finding.vuln_type or '未分类'}")
-        lines.append(f"- 生命周期: {finding.lifecycle_status or 'verified'}")
-        lines.append(f"- 证据等级: {finding.evidence_level or 'L4'}")
+        lines.append(f"- 漏洞類型: {finding.vuln_type or '未分類'}")
+        lines.append(f"- 生命週期: {finding.lifecycle_status or 'verified'}")
+        lines.append(f"- 證據等級: {finding.evidence_level or 'L4'}")
         lines.append(f"- 位置 / URL: {location}")
         if finding.evidence:
-            lines.append(f"- 验证证据: {finding.evidence}")
-        lines.append(f"- 复现 / PoC: {_build_repro_summary_clean(finding)}")
+            lines.append(f"- 驗證證據: {finding.evidence}")
+        lines.append(f"- 重現 / PoC: {_build_repro_summary_clean(finding)}")
         lines.append("")
     return "\n".join(lines).rstrip()
 
@@ -829,14 +833,14 @@ def _extract_location_summary(finding: VulnerabilityFinding) -> str:
 def _build_repro_summary(finding: VulnerabilityFinding) -> str:
     parts: list[str] = []
     if finding.poc_script:
-        parts.append(f"运行 PoC 脚本: {finding.poc_script}")
+        parts.append(f"執行 PoC 腳本: {finding.poc_script}")
     if finding.verification_note:
-        parts.append(f"验证说明: {finding.verification_note}")
+        parts.append(f"驗證說明: {finding.verification_note}")
     elif finding.evidence:
-        parts.append(f"根据已验证证据复现: {finding.evidence[:160]}")
+        parts.append(f"根據已驗證證據重現: {finding.evidence[:160]}")
     if finding.verified_at:
-        parts.append(f"验证时间: {finding.verified_at}")
-    return "；".join(parts) if parts else "暂无可用复现说明"
+        parts.append(f"驗證時間: {finding.verified_at}")
+    return "；".join(parts) if parts else "暫無可用重現說明"
 
 
 def _format_task_constraints_summary(session: SessionState) -> str:
@@ -884,12 +888,12 @@ def _build_report_finding(finding: VulnerabilityFinding) -> dict[str, Any]:
 def _render_verified_finding_details(findings: list[VulnerabilityFinding], heading: str) -> str:
     lines = [heading, ""]
     for idx, finding in enumerate(findings, 1):
-        location = _extract_location_summary(finding) or "未定位 / 未提取到 URL"
+        location = _extract_location_summary(finding) or "未定位 / 未擷取到 URL"
         lines.append(f"### {idx}. {finding.title} [{finding.severity}]")
-        lines.append(f"- 漏洞类型: {finding.vuln_type or '未分类'}")
+        lines.append(f"- 漏洞類型: {finding.vuln_type or '未分類'}")
         lines.append(f"- 位置 / URL: {location}")
         if finding.evidence:
-            lines.append(f"- 验证证据: {finding.evidence}")
-        lines.append(f"- 复现 / PoC: {_build_repro_summary(finding)}")
+            lines.append(f"- 驗證證據: {finding.evidence}")
+        lines.append(f"- 重現 / PoC: {_build_repro_summary(finding)}")
         lines.append("")
     return "\n".join(lines).rstrip()

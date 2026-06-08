@@ -1,4 +1,5 @@
 import type { TaskEvent, TaskRecord } from "../types/api";
+import { uiText, type UiLanguage, useUiLanguage } from "../utils/i18n";
 import { countConstraintViolations, formatEventLabel, formatPhaseLabel, formatTaskTitle } from "../utils/taskLabels";
 
 interface ActiveTaskBannerProps {
@@ -11,14 +12,14 @@ interface ActiveTaskBannerProps {
   onStop: () => void;
 }
 
-function eventText(event: TaskEvent | null): string {
-  if (!event) return "Waiting for task events.";
+function eventText(event: TaskEvent | null, language: UiLanguage): string {
+  if (!event) return uiText(language, "Waiting for task events.", "等待任務事件。");
   const text = event.payload.text;
   const message = event.payload.message;
   const phase = event.payload.phase;
   if (typeof text === "string" && text.trim()) return text;
   if (typeof message === "string" && message.trim()) return message;
-  if (typeof phase === "string" && phase.trim()) return `Phase: ${formatPhaseLabel(phase)}`;
+  if (typeof phase === "string" && phase.trim()) return `${uiText(language, "Phase", "階段")}: ${formatPhaseLabel(phase)}`;
   return formatEventLabel(event.event);
 }
 
@@ -59,6 +60,8 @@ function blockedAttempts(task: TaskRecord, event: TaskEvent | null): number {
 }
 
 export function ActiveTaskBanner({ task, latestEvent, onOpenAdvanced, onOpenBoundary, onOpenReports, onOpenTarget, onStop }: ActiveTaskBannerProps) {
+  const language = useUiLanguage();
+
   if (!task) return null;
 
   const progress = estimateProgress(task, latestEvent);
@@ -71,38 +74,38 @@ export function ActiveTaskBanner({ task, latestEvent, onOpenAdvanced, onOpenBoun
     <section className={`task-banner task-banner-${task.status}`}>
       <div className="task-banner-main">
         <div>
-          <span className="task-banner-kicker">Active scan</span>
+          <span className="task-banner-kicker">{uiText(language, "Active scan", "進行中的掃描")}</span>
           <h3>{formatTaskTitle(task.command, task.target)}</h3>
-          <p>{eventText(latestEvent)}</p>
+          <p>{eventText(latestEvent, language)}</p>
         </div>
         <div className="task-banner-actions">
           <button type="button" className="secondary-btn" onClick={() => onOpenTarget(task.target)}>
-            Results
+            {uiText(language, "Results", "結果")}
           </button>
           <button
             type="button"
             className={`secondary-btn ${blocked > 0 ? "boundary-alert-btn" : ""}`}
             onClick={onOpenBoundary}
-            aria-label={blocked > 0 ? `View ${blocked} blocked boundary attempts` : "View safety boundary"}
+            aria-label={blocked > 0 ? uiText(language, `View ${blocked} blocked boundary attempts`, `檢視 ${blocked} 次被封鎖的邊界嘗試`) : uiText(language, "View safety boundary", "檢視安全邊界")}
           >
-            {blocked > 0 ? `${blocked} blocked` : "Boundary"}
+            {blocked > 0 ? uiText(language, `${blocked} blocked`, `${blocked} 次封鎖`) : uiText(language, "Boundary", "邊界")}
           </button>
           {isFailed ? (
             <button type="button" className="danger-btn" onClick={onOpenAdvanced}>
-              Open console
+              {uiText(language, "Open console", "開啟主控台")}
             </button>
           ) : isComplete ? (
             <button type="button" className="primary-btn" onClick={onOpenReports}>
-              Reports
+              {uiText(language, "Reports", "報告")}
             </button>
           ) : (
             <button type="button" className="danger-btn" disabled={!canStop} onClick={onStop}>
-              Stop
+              {uiText(language, "Stop", "停止")}
             </button>
           )}
         </div>
       </div>
-      <div className="task-progress" aria-label={`Task progress ${progress}%`}>
+      <div className="task-progress" aria-label={uiText(language, `Task progress ${progress}%`, `任務進度 ${progress}%`)}>
         <span style={{ width: `${progress}%` }} />
       </div>
     </section>

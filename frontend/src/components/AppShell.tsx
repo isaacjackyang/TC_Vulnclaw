@@ -3,6 +3,7 @@ import type { TaskEvent, TaskRecord } from "../types/api";
 import { ActiveTaskBanner } from "./ActiveTaskBanner";
 import { Sidebar, type NavItem } from "./Sidebar";
 import { Topbar } from "./Topbar";
+import { uiText, useUiLanguage } from "../utils/i18n";
 
 interface ViewMeta {
   eyebrow: string;
@@ -61,6 +62,8 @@ export function AppShell<T extends string>({
   onStopTask,
   children,
 }: AppShellProps<T>) {
+  const language = useUiLanguage();
+
   return (
     <div className="app-shell">
       <Sidebar
@@ -81,15 +84,16 @@ export function AppShell<T extends string>({
         {backendUnavailable && (
           <section className="connection-banner" role="status">
             <div>
-              <strong>Backend unavailable</strong>
+              <strong>{uiText(language, "Backend unavailable", "後端無法連線")}</strong>
               <span>
-                Start <code>vulnclaw web</code> and open the local address to load the live console.
+                {uiText(language, "Start", "請啟動")} <code>vulnclaw web</code>
+                {uiText(language, " and open the local address to load the live console.", "，並開啟本機網址載入即時主控台。")}
               </span>
               {backendError && <small>{backendError}</small>}
             </div>
             {onRetryBackend && (
               <button className="secondary-btn" onClick={onRetryBackend} type="button">
-                Retry
+                {uiText(language, "Retry", "重試")}
               </button>
             )}
           </section>
@@ -105,7 +109,7 @@ export function AppShell<T extends string>({
         />
         <div className="view-mount">{children}</div>
       </main>
-      <aside className="quick-rail" aria-label="quick actions">
+      <aside className="quick-rail" aria-label={uiText(language, "quick actions", "快速動作")}>
         <div className="quick-rail-main">
           {quickActions.map((item) => (
             <button

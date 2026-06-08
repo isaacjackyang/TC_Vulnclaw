@@ -85,7 +85,11 @@ pip install -e .
 
 ```bash
 # 1. 选择提供商（自动填充 Base URL 和模型名）
-vulnclaw config provider minimax   (或 openai/deepseek/zhipu/moonshot/qwen/siliconflow)
+vulnclaw config provider minimax   (或 openai/llamacpp/deepseek/zhipu/moonshot/qwen/siliconflow)
+
+# 本地 llama.cpp:
+# ./llama-server -m ./models/your-model.gguf --host 127.0.0.1 --port 8080
+vulnclaw config provider llamacpp
 
 # 1.2（可选）自定义 Base URL 或模型名
 vulnclaw config set llm.base_url https://your-own-api.example.com/v1 
@@ -420,6 +424,7 @@ vulnclaw config provider minimax   # 一键切换
 | 提供商      | 命令                   | 默认模型              |
 | ----------- | ---------------------- | --------------------- |
 | OpenAI      | `provider openai`      | gpt-4o                |
+| llama.cpp   | `provider llamacpp`    | local-model           |
 | MiniMax     | `provider minimax`     | MiniMax-M3            |
 | DeepSeek    | `provider deepseek`    | deepseek-v4-pro       |
 | 智谱 GLM    | `provider zhipu`       | glm-4.7               |

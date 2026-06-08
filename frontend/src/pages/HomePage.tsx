@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { TaskCommand, TaskEvent, TaskOptions, TaskRecord, TaskSummary } from "../types/api";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { SectionCard } from "../components/SectionCard";
+import { uiText, type UiLanguage, useUiLanguage } from "../utils/i18n";
 import { loadUiPreferences, subscribeUiPreferences } from "../utils/preferences";
 import {
   countConstraintViolations,
@@ -76,8 +77,23 @@ const ACTION_OPTIONS = [
   { value: "post_exploitation", copy: "Post-exploitation steps, usually blocked." },
 ];
 
-function latestEventText(event: TaskEvent | null): string {
-  if (!event) return "Waiting for task events.";
+const MODE_COPY_ZH: Record<CheckMode, { title: string; copy: string }> = {
+  quick: { title: "快速", copy: "輕量探索。" },
+  standard: { title: "標準", copy: "建議掃描。" },
+  deep: { title: "深度", copy: "更多檢查。" },
+  continuous: { title: "循環", copy: "重複掃描。" },
+};
+
+function modeTitle(mode: CheckMode, title: string, language: UiLanguage): string {
+  return uiText(language, title, MODE_COPY_ZH[mode].title);
+}
+
+function modeCopy(mode: CheckMode, copy: string, language: UiLanguage): string {
+  return uiText(language, copy, MODE_COPY_ZH[mode].copy);
+}
+
+function latestEventText(event: TaskEvent | null, language: UiLanguage): string {
+  if (!event) return uiText(language, "Waiting for task events.", "等待任務事件。");
   const message = event.payload.message ?? event.payload.text;
   if (typeof message === "string" && message.trim()) return message;
   if (typeof event.payload.phase === "string" && event.payload.phase.trim()) {
@@ -97,11 +113,11 @@ function currentPhaseKey(task: TaskRecord | null, event: TaskEvent | null): stri
   return task.status === "running" ? "recon" : "scope";
 }
 
-function taskResultTitle(task: TaskRecord): string {
-  if (task.status === "completed") return "Scan complete";
-  if (task.status === "failed") return "Scan stopped by an error";
-  if (task.status === "stopped") return "Scan stopped";
-  return `Scanning ${task.target}`;
+function taskResultTitle(task: TaskRecord, language: UiLanguage): string {
+  if (task.status === "completed") return uiText(language, "Scan complete", "掃描完成");
+  if (task.status === "failed") return uiText(language, "Scan stopped by an error", "掃描因錯誤停止");
+  if (task.status === "stopped") return uiText(language, "Scan stopped", "掃描已停止");
+  return `${uiText(language, "Scanning", "掃描中")} ${task.target}`;
 }
 
 function eventSummary(event: TaskEvent | null): TaskSummary | null {
@@ -117,8 +133,8 @@ function formatEventPayload(event: TaskEvent): string {
   return JSON.stringify(event.payload, null, 2);
 }
 
-function joinScopeItems(items: string[]): string {
-  return items.length ? items.join(" - ") : "Auto scope";
+function joinScopeItems(items: string[], language: UiLanguage): string {
+  return items.length ? items.join(" - ") : uiText(language, "Auto scope", "自動範圍");
 }
 
 function inferScopeFromTarget(value: string): { host: string; port: string; path: string } {
@@ -141,6 +157,7 @@ function uniqueActions(actions: Array<string | undefined>): string[] {
 }
 
 export function HomePage({ selectedTarget, activeTask, latestEvent, taskEvents, onCreateTask, onOpenRisk, onOpenReports, onOpenBoundary }: HomePageProps) {
+  const language = useUiLanguage();
   const preferences = loadUiPreferences();
   const [target, setTarget] = useState(selectedTarget ?? "");
   const [mode, setMode] = useState<CheckMode>(() => preferences.defaultCheckMode);
@@ -182,13 +199,14 @@ export function HomePage({ selectedTarget, activeTask, latestEvent, taskEvents, 
   const scopeCount = [effectiveOnlyPort, effectiveOnlyHost, effectiveOnlyPath, blockedHost, blockedPath].filter((item) => item.trim()).length;
   const activeSummary = activeTask ? taskSummary(activeTask, latestEvent) : null;
   const boundaryBlockCount = countConstraintViolations(activeSummary?.constraint_violation_events, activeSummary?.constraint_violations);
+  const inferredLabel = uiText(language, " (inferred)", "（推斷）");
   const scopePreview = joinScopeItems([
-    effectiveOnlyHost ? `host ${effectiveOnlyHost}${onlyHost.trim() ? "" : " (inferred)"}` : "",
-    effectiveOnlyPort ? `port ${effectiveOnlyPort}${onlyPort.trim() ? "" : " (inferred)"}` : "",
-    effectiveOnlyPath ? `path ${effectiveOnlyPath}${onlyPath.trim() ? "" : " (inferred)"}` : "",
-    blockedHost.trim() ? `block host ${blockedHost.trim()}` : "",
-    blockedPath.trim() ? `block path ${blockedPath.trim()}` : "",
-  ].filter(Boolean));
+    effectiveOnlyHost ? `${uiText(language, "host", "主機")} ${effectiveOnlyHost}${onlyHost.trim() ? "" : inferredLabel}` : "",
+    effectiveOnlyPort ? `${uiText(language, "port", "連接埠")} ${effectiveOnlyPort}${onlyPort.trim() ? "" : inferredLabel}` : "",
+    effectiveOnlyPath ? `${uiText(language, "path", "路徑")} ${effectiveOnlyPath}${onlyPath.trim() ? "" : inferredLabel}` : "",
+    blockedHost.trim() ? `${uiText(language, "block host", "封鎖主機")} ${blockedHost.trim()}` : "",
+    blockedPath.trim() ? `${uiText(language, "block path", "封鎖路徑")} ${blockedPath.trim()}` : "",
+  ].filter(Boolean), language);
   const effectiveAllowActions = uniqueActions([...(allowActions.length ? allowActions : selectedMode.allowActions ?? []), selectedMode.command]);
   const effectiveBlockActions = uniqueActions(blockActions.length ? blockActions : selectedMode.blockActions ?? [])
     .filter((action) => action !== selectedMode.command);
@@ -196,10 +214,10 @@ export function HomePage({ selectedTarget, activeTask, latestEvent, taskEvents, 
   const blockPreview = formatActionList(effectiveBlockActions);
   const requiresExtraCare = mode === "deep" || mode === "continuous";
   const confirmCopy = [
-    `Target: ${target.trim() || "Not set"}`,
-    `Mode: ${selectedMode.title}`,
-    `Scope: ${scopePreview}`,
-    requiresExtraCare ? "This scan may run longer." : "",
+    `${uiText(language, "Target", "目標")}: ${target.trim() || uiText(language, "Not set", "未設定")}`,
+    `${uiText(language, "Mode", "模式")}: ${modeTitle(selectedMode.key, selectedMode.title, language)}`,
+    `${uiText(language, "Scope", "範圍")}: ${scopePreview}`,
+    requiresExtraCare ? uiText(language, "This scan may run longer.", "此掃描可能需要較長時間。") : "",
   ].join("\n");
 
   function buildOptions(): TaskOptions {
@@ -234,7 +252,7 @@ export function HomePage({ selectedTarget, activeTask, latestEvent, taskEvents, 
       setError(null);
       await onCreateTask(selectedMode.command, target.trim(), resume, buildOptions());
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to start task");
+      setError(err instanceof Error ? err.message : uiText(language, "Failed to start task", "無法啟動任務"));
     } finally {
       setSubmitting(false);
       setConfirmOpen(false);
@@ -245,12 +263,12 @@ export function HomePage({ selectedTarget, activeTask, latestEvent, taskEvents, 
     try {
       parseOptionalPort(effectiveOnlyPort);
       if (mode === "continuous" && effectiveOnlyPath) {
-        setError("Continuous mode does not support a path-only scope.");
+        setError(uiText(language, "Continuous mode does not support a path-only scope.", "持續模式不支援僅限路徑的範圍。"));
         return;
       }
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Invalid port format");
+      setError(err instanceof Error ? err.message : uiText(language, "Invalid port format", "連接埠格式無效"));
       return;
     }
     if (requiresExtraCare) {
@@ -262,11 +280,11 @@ export function HomePage({ selectedTarget, activeTask, latestEvent, taskEvents, 
 
   const phaseKey = currentPhaseKey(activeTask, latestEvent);
   const phaseSteps = [
-    ["scope", "Scope"],
-    ["recon", "Recon"],
-    ["scan", "Scan"],
-    ["verify", "Verify"],
-    ["report", "Report"],
+    ["scope", uiText(language, "Scope", "範圍")],
+    ["recon", uiText(language, "Recon", "偵察")],
+    ["scan", uiText(language, "Scan", "掃描")],
+    ["verify", uiText(language, "Verify", "驗證")],
+    ["report", uiText(language, "Report", "報告")],
   ] as const;
 
   return (
@@ -283,8 +301,8 @@ export function HomePage({ selectedTarget, activeTask, latestEvent, taskEvents, 
             </div>
           </div>
           <div className="goby-welcome-copy">
-            <h2>Welcome to VulnClaw</h2>
-            <p>Attack surface mapping</p>
+            <h2>{uiText(language, "Welcome to VulnClaw", "歡迎使用 VulnClaw")}</h2>
+            <p>{uiText(language, "Attack surface mapping", "攻擊面測繪")}</p>
           </div>
           <button
             type="button"
@@ -292,21 +310,21 @@ export function HomePage({ selectedTarget, activeTask, latestEvent, taskEvents, 
             disabled={submitting || !target.trim()}
             onClick={handleStart}
           >
-            {submitting ? "Starting" : "Scan"}
+            {submitting ? uiText(language, "Starting", "啟動中") : uiText(language, "Scan", "掃描")}
           </button>
         </div>
 
         <div className="scan-launch goby-task-panel">
           <div className="goby-task-title">
             <span className="goby-task-icon">▣</span>
-            <strong>New Scan Task</strong>
-            <button type="button" className="text-btn inline-text-btn" onClick={() => setTarget("")} aria-label="Clear target">
+            <strong>{uiText(language, "New Scan Task", "新增掃描任務")}</strong>
+            <button type="button" className="text-btn inline-text-btn" onClick={() => setTarget("")} aria-label={uiText(language, "Clear target", "清除目標")}>
               ×
             </button>
           </div>
           <div className="goby-task-form">
             <label className="field scan-target-field field-wide">
-              <span>IP/Domain</span>
+              <span>{uiText(language, "IP/Domain", "IP/網域")}</span>
               <textarea
                 value={target}
                 onChange={(event) => setTarget(event.target.value)}
@@ -314,26 +332,26 @@ export function HomePage({ selectedTarget, activeTask, latestEvent, taskEvents, 
               />
             </label>
             <label className="field field-wide">
-              <span>Black IP</span>
+              <span>{uiText(language, "Black IP", "封鎖 IP")}</span>
               <textarea value={blockedHost} onChange={(event) => setBlockedHost(event.target.value)} placeholder="192.0.2.10" />
             </label>
             <label className="field">
-              <span>Port</span>
+              <span>{uiText(language, "Port", "連接埠")}</span>
               <select value={mode} onChange={(event) => setMode(event.target.value as CheckMode)}>
                 {MODES.map((item) => (
                   <option key={item.key} value={item.key}>
-                    {item.title}
+                    {modeTitle(item.key, item.title, language)}
                   </option>
                 ))}
               </select>
             </label>
             <label className="field">
-              <span>Custom ports</span>
+              <span>{uiText(language, "Custom ports", "自訂連接埠")}</span>
               <input value={onlyPort} onChange={(event) => setOnlyPort(event.target.value)} inputMode="numeric" placeholder="21,22,80,443" />
             </label>
           </div>
 
-          <div className="scan-mode-row" aria-label="Scan mode">
+          <div className="scan-mode-row" aria-label={uiText(language, "Scan mode", "掃描模式")}>
             {MODES.map((item) => (
               <button
                 key={item.key}
@@ -341,8 +359,8 @@ export function HomePage({ selectedTarget, activeTask, latestEvent, taskEvents, 
                 className={`scan-mode-pill ${mode === item.key ? "selected-item" : ""}`}
                 onClick={() => setMode(item.key)}
               >
-                <strong>{item.title}</strong>
-                <span>{item.copy}</span>
+                <strong>{modeTitle(item.key, item.title, language)}</strong>
+                <span>{modeCopy(item.key, item.copy, language)}</span>
               </button>
             ))}
           </div>
@@ -350,11 +368,11 @@ export function HomePage({ selectedTarget, activeTask, latestEvent, taskEvents, 
           <div className="scan-summary-row">
             <label className="check-row goby-printer-row">
               <input checked={resume} onChange={(event) => setResume(event.target.checked)} type="checkbox" />
-              <span>Resume previous state</span>
+              <span>{uiText(language, "Resume previous state", "沿用先前狀態")}</span>
             </label>
-            <span>{scopeCount ? `${scopeCount} bounds` : "Auto scope"}</span>
+            <span>{scopeCount ? uiText(language, `${scopeCount} bounds`, `${scopeCount} 個邊界`) : uiText(language, "Auto scope", "自動範圍")}</span>
             <button type="button" className="text-btn inline-text-btn" onClick={() => setAdvancedOpen((value) => !value)}>
-              {advancedOpen ? "Hide advanced" : "Advanced"}
+              {advancedOpen ? uiText(language, "Hide advanced", "隱藏進階") : uiText(language, "Advanced", "進階")}
             </button>
           </div>
 
@@ -364,49 +382,49 @@ export function HomePage({ selectedTarget, activeTask, latestEvent, taskEvents, 
             disabled={submitting || !target.trim()}
             onClick={handleStart}
           >
-            {submitting ? "Starting..." : "Start"}
+            {submitting ? uiText(language, "Starting...", "啟動中...") : uiText(language, "Start", "開始")}
           </button>
         </div>
       </div>
 
       {advancedOpen && (
-        <SectionCard title="Advanced">
+        <SectionCard title={uiText(language, "Advanced", "進階")}>
           <div className="form-grid compact-form">
             <label className="check-row">
               <input checked={resume} onChange={(event) => setResume(event.target.checked)} type="checkbox" />
-              <span>Resume previous state</span>
+              <span>{uiText(language, "Resume previous state", "沿用先前狀態")}</span>
             </label>
             <label className="field">
-              <span>Port</span>
+              <span>{uiText(language, "Port", "連接埠")}</span>
               <input value={onlyPort} onChange={(event) => setOnlyPort(event.target.value)} inputMode="numeric" placeholder="443" />
             </label>
             <label className="field">
-              <span>Host</span>
+              <span>{uiText(language, "Host", "主機")}</span>
               <input value={onlyHost} onChange={(event) => setOnlyHost(event.target.value)} placeholder="example.com" />
             </label>
             <label className="field">
-              <span>Path</span>
+              <span>{uiText(language, "Path", "路徑")}</span>
               <input value={onlyPath} onChange={(event) => setOnlyPath(event.target.value)} placeholder="/admin" />
             </label>
             <label className="field">
-              <span>Block host</span>
+              <span>{uiText(language, "Block host", "封鎖主機")}</span>
               <input value={blockedHost} onChange={(event) => setBlockedHost(event.target.value)} placeholder="staging.example.com" />
             </label>
             <label className="field">
-              <span>Block path</span>
+              <span>{uiText(language, "Block path", "封鎖路徑")}</span>
               <input value={blockedPath} onChange={(event) => setBlockedPath(event.target.value)} placeholder="/internal" />
             </label>
           </div>
           <div className="scope-summary">
-            <strong>Scope</strong>
+            <strong>{uiText(language, "Scope", "範圍")}</strong>
             <span>{scopePreview}</span>
-            <strong>Allow</strong>
+            <strong>{uiText(language, "Allow", "允許")}</strong>
             <span>{allowPreview}</span>
-            <strong>Block</strong>
+            <strong>{uiText(language, "Block", "封鎖")}</strong>
             <span>{blockPreview}</span>
           </div>
           <details className="advanced-details">
-            <summary>Action rules</summary>
+            <summary>{uiText(language, "Action rules", "動作規則")}</summary>
             <div className="action-boundary-panel">
               <div className="action-choice-grid">
                 {ACTION_OPTIONS.map((action) => (
@@ -428,7 +446,7 @@ export function HomePage({ selectedTarget, activeTask, latestEvent, taskEvents, 
                     className={`action-choice action-choice-block ${blockActions.includes(action.value) ? "selected-item" : ""}`}
                     onClick={() => toggleAction(action.value, blockActions, setBlockActions, allowActions, setAllowActions)}
                   >
-                    <strong>Block {formatActionLabel(action.value)}</strong>
+                    <strong>{uiText(language, "Block", "封鎖")} {formatActionLabel(action.value)}</strong>
                   </button>
                 ))}
               </div>
@@ -439,16 +457,16 @@ export function HomePage({ selectedTarget, activeTask, latestEvent, taskEvents, 
       )}
 
       {activeTask && (
-        <SectionCard title="Running" aside={<span className="status-badge">{formatTaskStatus(activeTask.status)}</span>}>
+        <SectionCard title={uiText(language, "Running", "執行中")} aside={<span className="status-badge">{formatTaskStatus(activeTask.status)}</span>}>
           <div className="check-progress-card">
             <div className="check-progress-head">
               <div>
-                <span className="pill">Current task</span>
-                <h3>{taskResultTitle(activeTask)}</h3>
-                <p>{latestEventText(latestEvent)}</p>
+                <span className="pill">{uiText(language, "Current task", "目前任務")}</span>
+                <h3>{taskResultTitle(activeTask, language)}</h3>
+                <p>{latestEventText(latestEvent, language)}</p>
               </div>
               <div className="check-progress-target">
-                <span>Target</span>
+                <span>{uiText(language, "Target", "目標")}</span>
                 <strong>{activeTask.target}</strong>
               </div>
             </div>
@@ -464,33 +482,33 @@ export function HomePage({ selectedTarget, activeTask, latestEvent, taskEvents, 
               })}
             </div>
             <div className="next-actions">
-              <button type="button" className="primary-btn" onClick={onOpenRisk}>View results</button>
-              <button type="button" className="secondary-btn" onClick={onOpenReports}>View reports</button>
-              <button type="button" className="secondary-btn" onClick={onOpenBoundary}>View boundary</button>
+              <button type="button" className="primary-btn" onClick={onOpenRisk}>{uiText(language, "View results", "檢視結果")}</button>
+              <button type="button" className="secondary-btn" onClick={onOpenReports}>{uiText(language, "View reports", "檢視報告")}</button>
+              <button type="button" className="secondary-btn" onClick={onOpenBoundary}>{uiText(language, "View boundary", "檢視邊界")}</button>
             </div>
             {activeSummary && (
               <div className="stats-grid check-result-stats">
                 <article className="stat">
-                  <span className="stat-label">Verified</span>
+                  <span className="stat-label">{uiText(language, "Verified", "已驗證")}</span>
                   <strong>{activeSummary.verified_count}</strong>
                 </article>
                 <article className="stat">
-                  <span className="stat-label">Pending</span>
+                  <span className="stat-label">{uiText(language, "Pending", "待處理")}</span>
                   <strong>{activeSummary.pending_count}</strong>
                 </article>
                 <article className="stat">
-                  <span className="stat-label">Boundary hits</span>
+                  <span className="stat-label">{uiText(language, "Boundary hits", "邊界命中")}</span>
                   <strong>{boundaryBlockCount}</strong>
                 </article>
                 <article className="stat">
-                  <span className="stat-label">Snapshot</span>
-                  <strong>{activeSummary.snapshot_id || "Saved"}</strong>
+                  <span className="stat-label">{uiText(language, "Snapshot", "快照")}</span>
+                  <strong>{activeSummary.snapshot_id || uiText(language, "Saved", "已儲存")}</strong>
                 </article>
               </div>
             )}
             <div className="technical-log-panel">
               <button type="button" className="text-btn technical-log-toggle" onClick={() => setTechnicalLogsOpen((value) => !value)}>
-                {technicalLogsOpen ? "Hide raw events" : "Show raw events"}
+                {technicalLogsOpen ? uiText(language, "Hide raw events", "隱藏原始事件") : uiText(language, "Show raw events", "顯示原始事件")}
               </button>
               {technicalLogsOpen && (
                 <div className="technical-log-stream" aria-live="polite">
@@ -505,7 +523,7 @@ export function HomePage({ selectedTarget, activeTask, latestEvent, taskEvents, 
                       </article>
                     ))
                   ) : (
-                    <div className="empty-state">No raw task events yet.</div>
+                    <div className="empty-state">{uiText(language, "No raw task events yet.", "尚無原始任務事件。")}</div>
                   )}
                 </div>
               )}
@@ -516,9 +534,9 @@ export function HomePage({ selectedTarget, activeTask, latestEvent, taskEvents, 
 
       <ConfirmDialog
         open={confirmOpen}
-        title="Start deep scan?"
+        title={uiText(language, "Start deep scan?", "要開始深度掃描嗎？")}
         copy={confirmCopy}
-        confirmLabel="Start scan"
+        confirmLabel={uiText(language, "Start scan", "開始掃描")}
         onCancel={() => setConfirmOpen(false)}
         onConfirm={() => {
           setConfirmOpen(false);

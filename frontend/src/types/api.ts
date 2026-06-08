@@ -5,6 +5,8 @@ export interface ConfigView {
   model: string;
   base_url: string;
   api_key_configured: boolean;
+  requires_api_key: boolean;
+  auth_ready: boolean;
   output_dir: string;
   max_rounds: number;
   persistent_rounds_per_cycle: number;

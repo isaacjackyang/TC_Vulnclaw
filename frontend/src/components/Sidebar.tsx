@@ -1,3 +1,5 @@
+import { uiText, useUiLanguage } from "../utils/i18n";
+
 export interface NavItem<T extends string> {
   key: T;
   label: string;
@@ -22,6 +24,8 @@ interface SidebarProps<T extends string> {
 }
 
 export function Sidebar<T extends string>({ activeView, activeNavView = activeView, nav, footerActions, onSelectView }: SidebarProps<T>) {
+  const language = useUiLanguage();
+
   return (
     <aside className="sidebar">
       <div className="brand">
@@ -31,11 +35,11 @@ export function Sidebar<T extends string>({ activeView, activeNavView = activeVi
         <div>
           <div className="brand-kicker">VulnClaw</div>
           <h1>VulnClaw</h1>
-          <p>Attack surface mapping</p>
+          <p>{uiText(language, "Attack surface mapping", "攻擊面測繪")}</p>
         </div>
       </div>
 
-      <nav className="nav-list" aria-label="main navigation">
+      <nav className="nav-list" aria-label={uiText(language, "main navigation", "主導覽")}>
         {nav.map((item) => (
           <button
             key={item.key}

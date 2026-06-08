@@ -283,6 +283,22 @@ def list_providers() -> list[dict[str, str]]:
                 "label": preset.get("label", provider.value),
                 "base_url": preset.get("base_url", ""),
                 "default_model": preset.get("default_model", ""),
+                "requires_api_key": preset.get("requires_api_key", "true"),
             }
         )
     return result
+
+
+def provider_requires_api_key(provider_name: str) -> bool:
+    """Return whether the configured provider needs a real API key."""
+    try:
+        provider = LLMProvider(provider_name.lower())
+    except ValueError:
+        return True
+    preset = PROVIDER_PRESETS.get(provider, {})
+    return preset.get("requires_api_key", "true").lower() != "false"
+
+
+def llm_auth_ready(provider_name: str, api_key: str) -> bool:
+    """Return whether the LLM auth settings are usable for this provider."""
+    return bool(api_key) or not provider_requires_api_key(provider_name)

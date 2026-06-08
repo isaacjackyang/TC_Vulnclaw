@@ -1,5 +1,6 @@
 import { StatusDot } from "./StatusDot";
 import { formatTaskStatus } from "../utils/taskLabels";
+import { uiText, useUiLanguage } from "../utils/i18n";
 
 interface TopbarProps {
   eyebrow: string;
@@ -18,7 +19,8 @@ function statusTone(status?: string): "idle" | "ok" | "warn" | "danger" | "runni
 }
 
 export function Topbar({ eyebrow, title, copy, selectedTarget, activeTaskStatus }: TopbarProps) {
-  const targetLabel = selectedTarget ? `Target: ${selectedTarget}` : "No target selected";
+  const language = useUiLanguage();
+  const targetLabel = selectedTarget ? `${uiText(language, "Target", "目標")}: ${selectedTarget}` : uiText(language, "No target selected", "尚未選擇目標");
 
   return (
     <header className="topbar">
@@ -28,7 +30,7 @@ export function Topbar({ eyebrow, title, copy, selectedTarget, activeTaskStatus 
         <p>{copy}</p>
       </div>
       <div className="topbar-status">
-        <StatusDot tone={statusTone(activeTaskStatus)} label={activeTaskStatus ? formatTaskStatus(activeTaskStatus) : "Idle"} />
+        <StatusDot tone={statusTone(activeTaskStatus)} label={activeTaskStatus ? formatTaskStatus(activeTaskStatus) : uiText(language, "Idle", "閒置")} />
         <StatusDot tone={selectedTarget ? "ok" : "idle"} label={targetLabel} />
       </div>
     </header>

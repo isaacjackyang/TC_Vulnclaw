@@ -14,6 +14,7 @@ import { TaskConsolePage } from "./pages/TaskConsolePage";
 import { createTask, openTaskStream, stopTask } from "./api/web";
 import { useConfigQuery } from "./hooks/queries";
 import type { TaskCommand, TaskEvent, TaskOptions, TaskRecord, TaskSummary } from "./types/api";
+import { uiText, useUiLanguage } from "./utils/i18n";
 import { formatTaskTitle } from "./utils/taskLabels";
 
 type AppView = "home" | "risk" | "reports" | "boundary" | "history" | "settings" | "advanced";
@@ -63,6 +64,44 @@ const VIEW_META: Record<AppView, { eyebrow: string; title: string; copy: string 
   },
 };
 
+const VIEW_META_ZH: Record<AppView, { eyebrow: string; title: string; copy: string }> = {
+  home: {
+    eyebrow: "掃描",
+    title: "新增掃描",
+    copy: "輸入目標並開始。",
+  },
+  risk: {
+    eyebrow: "結果",
+    title: "發現項目",
+    copy: "已驗證風險與證據。",
+  },
+  reports: {
+    eyebrow: "報告",
+    title: "報告",
+    copy: "預覽與匯出。",
+  },
+  boundary: {
+    eyebrow: "範圍",
+    title: "安全邊界",
+    copy: "範圍限制與封鎖動作。",
+  },
+  history: {
+    eyebrow: "記錄",
+    title: "歷史",
+    copy: "任務與快照。",
+  },
+  settings: {
+    eyebrow: "設定",
+    title: "設定",
+    copy: "執行預設值。",
+  },
+  advanced: {
+    eyebrow: "控制",
+    title: "任務主控台",
+    copy: "原始任務控制。",
+  },
+};
+
 const HASH_TO_VIEW: Record<string, AppView> = {
   home: "home",
   risk: "risk",
@@ -85,6 +124,8 @@ function viewHash(view: AppView): string {
 export function App() {
   const configQuery = useConfigQuery();
   const queryClient = useQueryClient();
+  const language = useUiLanguage();
+  const viewMeta = language === "zh-TW" ? VIEW_META_ZH : VIEW_META;
   const [activeView, setActiveView] = useState<AppView>(() => viewFromHash());
   const [selectedTarget, setSelectedTarget] = useState<string | null>(null);
   const [activeTask, setActiveTask] = useState<TaskRecord | null>(null);
@@ -96,14 +137,14 @@ export function App() {
 
   const nav = useMemo(
     () => [
-      { key: "home" as const, label: "Scan", description: "", icon: "/icons/sidebar/scan.svg" },
-      { key: "risk" as const, label: "Findings", description: "", icon: "/icons/sidebar/findings.svg" },
-      { key: "reports" as const, label: "Reports", description: "", icon: "/icons/sidebar/reports.svg" },
-      { key: "boundary" as const, label: "Scope", description: "", icon: "/icons/sidebar/scope.svg" },
-      { key: "history" as const, label: "History", description: "", icon: "/icons/sidebar/history.svg" },
-      { key: "settings" as const, label: "Settings", description: "", icon: "/icons/sidebar/settings.svg" },
+      { key: "home" as const, label: uiText(language, "Scan", "掃描"), description: "", icon: "/icons/sidebar/scan.svg" },
+      { key: "risk" as const, label: uiText(language, "Findings", "發現"), description: "", icon: "/icons/sidebar/findings.svg" },
+      { key: "reports" as const, label: uiText(language, "Reports", "報告"), description: "", icon: "/icons/sidebar/reports.svg" },
+      { key: "boundary" as const, label: uiText(language, "Scope", "範圍"), description: "", icon: "/icons/sidebar/scope.svg" },
+      { key: "history" as const, label: uiText(language, "History", "歷史"), description: "", icon: "/icons/sidebar/history.svg" },
+      { key: "settings" as const, label: uiText(language, "Settings", "設定"), description: "", icon: "/icons/sidebar/settings.svg" },
     ],
-    [],
+    [language],
   );
 
   const latestEvent = taskEvents.length > 0 ? taskEvents[taskEvents.length - 1] : null;
@@ -168,10 +209,10 @@ export function App() {
         refreshTaskData(summary?.target ?? activeTask.target);
         pushToast(
           "success",
-          "Task finished",
-          "Review the risk results or generate a report.",
+          uiText(language, "Task finished", "任務已完成"),
+          uiText(language, "Review the risk results or generate a report.", "請檢視風險結果或產生報告。"),
           {
-            actionLabel: "Open results",
+            actionLabel: uiText(language, "Open results", "開啟結果"),
             onAction: () => {
               setSelectedTarget(summary?.target ?? activeTask.target);
               navigateToView("risk");
@@ -182,15 +223,15 @@ export function App() {
       if (event.event === "task_failed") {
         setActiveTask((prev) => (prev && prev.task_id === event.task_id ? { ...prev, status: "failed" } : prev));
         refreshTaskData(activeTask.target);
-        pushToast("error", "Task failed", String(event.payload.message ?? event.payload.error ?? "Check advanced logs."), {
-          actionLabel: "Open console",
+        pushToast("error", uiText(language, "Task failed", "任務失敗"), String(event.payload.message ?? event.payload.error ?? uiText(language, "Check advanced logs.", "請檢查進階記錄。")), {
+          actionLabel: uiText(language, "Open console", "開啟主控台"),
           onAction: () => navigateToView("advanced"),
         });
       }
       if (event.event === "task_stopped") {
         setActiveTask((prev) => (prev && prev.task_id === event.task_id ? { ...prev, status: "stopped" } : prev));
         refreshTaskData(activeTask.target);
-        pushToast("info", "Task stopped", "Saved state and reports remain available.");
+        pushToast("info", uiText(language, "Task stopped", "任務已停止"), uiText(language, "Saved state and reports remain available.", "已儲存的狀態與報告仍可使用。"));
       }
     });
     return () => source.close();
@@ -201,7 +242,7 @@ export function App() {
     setActiveTask(task);
     setSelectedTarget(task.target);
     setTaskEvents([]);
-    pushToast("success", "Task started", formatTaskTitle(task.command, task.target));
+    pushToast("success", uiText(language, "Task started", "任務已開始"), formatTaskTitle(task.command, task.target));
     return task;
   }
 
@@ -210,7 +251,7 @@ export function App() {
     await stopTask(activeTask.task_id);
     setActiveTask((prev) => (prev ? { ...prev, status: "stopped" } : prev));
     refreshTaskData(activeTask.target);
-    pushToast("info", "Stop request sent", "VulnClaw is ending the current task.");
+    pushToast("info", uiText(language, "Stop request sent", "已送出停止要求"), uiText(language, "VulnClaw is ending the current task.", "VulnClaw 正在結束目前任務。"));
   }
 
   function openBoundaryForActiveTask() {
@@ -241,11 +282,11 @@ export function App() {
   }
 
   const quickActions: ShellAction[] = [
-    { label: "New scan", glyph: "+", active: activeView === "home", onClick: () => navigateToView("home") },
-    { label: "History", glyph: "T", active: activeView === "history", onClick: () => navigateToView("history") },
-    { label: "Reports", glyph: "R", active: activeView === "reports", onClick: () => openReports(activeTask?.target ?? selectedTarget) },
+    { label: uiText(language, "New scan", "新增掃描"), glyph: "+", active: activeView === "home", onClick: () => navigateToView("home") },
+    { label: uiText(language, "History", "歷史"), glyph: "T", active: activeView === "history", onClick: () => navigateToView("history") },
+    { label: uiText(language, "Reports", "報告"), glyph: "R", active: activeView === "reports", onClick: () => openReports(activeTask?.target ?? selectedTarget) },
     {
-      label: "Assets",
+      label: uiText(language, "Assets", "資產"),
       glyph: "A",
       active: activeView === "risk",
       onClick: () => {
@@ -254,20 +295,20 @@ export function App() {
       },
     },
     {
-      label: "Scope",
+      label: uiText(language, "Scope", "範圍"),
       glyph: "IP",
       active: activeView === "boundary",
       onClick: openBoundaryForActiveTask,
     },
     {
-      label: "Findings",
+      label: uiText(language, "Findings", "發現"),
       glyph: "!",
       active: activeView === "risk",
       onClick: () => navigateToView("risk"),
     },
-    { label: "Console", glyph: "C", active: activeView === "advanced", onClick: () => navigateToView("advanced") },
+    { label: uiText(language, "Console", "主控台"), glyph: "C", active: activeView === "advanced", onClick: () => navigateToView("advanced") },
     {
-      label: "Refresh",
+      label: uiText(language, "Refresh", "重新整理"),
       glyph: "F",
       onClick: () => refreshTaskData(activeTask?.target ?? selectedTarget),
     },
@@ -275,10 +316,10 @@ export function App() {
 
   const sidebarActions: ShellAction[] = [
     hasStoppableTask
-      ? { label: "Stop task", glyph: "ST", onClick: () => setStopConfirmOpen(true) }
-      : { label: "Home", glyph: "H", active: activeView === "home", onClick: () => navigateToView("home") },
-    { label: "Settings", glyph: "S", active: activeView === "settings", onClick: () => openSettings("basic") },
-    { label: "Console", glyph: "C", active: activeView === "advanced", onClick: () => navigateToView("advanced") },
+      ? { label: uiText(language, "Stop task", "停止任務"), glyph: "ST", onClick: () => setStopConfirmOpen(true) }
+      : { label: uiText(language, "Home", "首頁"), glyph: "H", active: activeView === "home", onClick: () => navigateToView("home") },
+    { label: uiText(language, "Settings", "設定"), glyph: "S", active: activeView === "settings", onClick: () => openSettings("basic") },
+    { label: uiText(language, "Console", "主控台"), glyph: "C", active: activeView === "advanced", onClick: () => navigateToView("advanced") },
   ];
 
   return (
@@ -286,7 +327,7 @@ export function App() {
       activeView={activeView}
       activeNavView={activeView === "advanced" ? "settings" : activeView}
       nav={nav}
-      meta={VIEW_META[activeView]}
+      meta={viewMeta[activeView]}
       quickActions={quickActions}
       sidebarActions={sidebarActions}
       backendUnavailable={configQuery.isError}
@@ -377,10 +418,10 @@ export function App() {
 
       <ConfirmDialog
         open={stopConfirmOpen}
-        title="Stop current scan?"
-        copy="Stopping will end the current task, but saved state and reports will remain available."
+        title={uiText(language, "Stop current scan?", "要停止目前掃描嗎？")}
+        copy={uiText(language, "Stopping will end the current task, but saved state and reports will remain available.", "停止會結束目前任務，但已儲存的狀態與報告仍會保留。")}
         tone="danger"
-        confirmLabel="Stop task"
+        confirmLabel={uiText(language, "Stop task", "停止任務")}
         onCancel={() => setStopConfirmOpen(false)}
         onConfirm={() => {
           setStopConfirmOpen(false);

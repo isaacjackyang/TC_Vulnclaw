@@ -4,7 +4,13 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from vulnclaw.config.settings import apply_provider_preset, load_config, save_config
+from vulnclaw.config.settings import (
+    apply_provider_preset,
+    llm_auth_ready,
+    load_config,
+    provider_requires_api_key,
+    save_config,
+)
 from vulnclaw.web.schemas import ConfigUpdateRequest, ConfigView
 
 
@@ -16,6 +22,8 @@ def get_public_config() -> ConfigView:
         model=config.llm.model,
         base_url=config.llm.base_url,
         api_key_configured=bool(config.llm.api_key),
+        requires_api_key=provider_requires_api_key(config.llm.provider),
+        auth_ready=llm_auth_ready(config.llm.provider, config.llm.api_key),
         output_dir=str(config.session.output_dir),
         max_rounds=config.session.max_rounds,
         persistent_rounds_per_cycle=config.session.persistent_rounds_per_cycle,

@@ -105,6 +105,7 @@ class TestVulnClawConfig:
         # Should have at least the documented providers
         expected_providers = [
             "openai",
+            "llamacpp",
             "minimax",
             "deepseek",
             "zhipu",
@@ -119,6 +120,7 @@ class TestVulnClawConfig:
         from vulnclaw.config.schema import LLMProvider
 
         assert hasattr(LLMProvider, "OPENAI")
+        assert hasattr(LLMProvider, "LLAMACPP")
         assert hasattr(LLMProvider, "DEEPSEEK")
         assert hasattr(LLMProvider, "MINIMAX")
 
@@ -188,6 +190,24 @@ class TestSettingsLoad:
             assert "provider" in p
             assert "base_url" in p
             assert "default_model" in p
+            assert "requires_api_key" in p
+
+    def test_llamacpp_provider_preset(self):
+        from vulnclaw.config.schema import VulnClawConfig
+        from vulnclaw.config.settings import (
+            apply_provider_preset,
+            llm_auth_ready,
+            provider_requires_api_key,
+        )
+
+        config = VulnClawConfig()
+        apply_provider_preset(config, "llamacpp")
+
+        assert config.llm.provider == "llamacpp"
+        assert config.llm.base_url == "http://127.0.0.1:8080/v1"
+        assert config.llm.model == "local-model"
+        assert provider_requires_api_key("llamacpp") is False
+        assert llm_auth_ready("llamacpp", "") is True
 
     def test_env_var_override(self, monkeypatch):
         """Test that environment variables override config values."""

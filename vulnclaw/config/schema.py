@@ -15,6 +15,7 @@ class LLMProvider(str, Enum):
     """Supported LLM providers with OpenAI-compatible APIs."""
 
     OPENAI = "openai"
+    LLAMACPP = "llamacpp"
     MINIMAX = "minimax"
     DEEPSEEK = "deepseek"
     ZHIPU = "zhipu"
@@ -35,6 +36,13 @@ PROVIDER_PRESETS: dict[LLMProvider, dict[str, str]] = {
         "base_url": "https://api.openai.com/v1",
         "default_model": "gpt-4o",
         "label": "OpenAI",
+        "requires_api_key": "true",
+    },
+    LLMProvider.LLAMACPP: {
+        "base_url": "http://127.0.0.1:8080/v1",
+        "default_model": "local-model",
+        "label": "llama.cpp (local)",
+        "requires_api_key": "false",
     },
     LLMProvider.MINIMAX: {
         "base_url": "https://api.minimaxi.com/v1",

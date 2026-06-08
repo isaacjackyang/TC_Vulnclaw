@@ -176,6 +176,8 @@ class ConfigView(BaseModel):
     model: str
     base_url: str
     api_key_configured: bool
+    requires_api_key: bool = True
+    auth_ready: bool = False
     output_dir: str
     max_rounds: int
     persistent_rounds_per_cycle: int

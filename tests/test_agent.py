@@ -204,6 +204,32 @@ class TestAgentAutoSave:
         assert saved["count"] == 0
 
 
+class TestAgentLLMClient:
+    """Test agent LLM client initialization."""
+
+    def test_llamacpp_client_uses_dummy_key_when_unset(self, monkeypatch):
+        from vulnclaw.agent.core import AgentCore
+        from vulnclaw.config.schema import VulnClawConfig
+
+        captured = {}
+
+        class DummyOpenAI:
+            def __init__(self, **kwargs):
+                captured.update(kwargs)
+
+        monkeypatch.setitem(__import__("sys").modules, "openai", type("M", (), {"OpenAI": DummyOpenAI}))
+
+        config = VulnClawConfig()
+        config.llm.provider = "llamacpp"
+        config.llm.base_url = "http://127.0.0.1:8080/v1"
+        config.llm.api_key = ""
+
+        AgentCore(config)._get_client()
+
+        assert captured["api_key"] == "local-llamacpp"
+        assert captured["base_url"] == "http://127.0.0.1:8080/v1"
+
+
 class TestTargetState:
     """Test target-level resume state."""
 
@@ -641,10 +667,12 @@ class TestPromptBuilder:
     def test_all_phases_render(self):
         from vulnclaw.agent.prompts import build_system_prompt
 
+        base_prompt = build_system_prompt()
         phases = ["信息收集", "漏洞发现", "漏洞利用", "后渗透", "报告生成"]
         for phase in phases:
             prompt = build_system_prompt(phase=phase)
-            assert phase in prompt
+            assert len(prompt) > len(base_prompt)
+            assert "繁體中文" in prompt
 
 
 # ── core.py ──────────────────────────────────────────────────────────
