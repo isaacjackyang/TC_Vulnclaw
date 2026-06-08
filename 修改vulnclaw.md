@@ -618,3 +618,38 @@ cmd /d /c "call start.cmd --dry-run"
 [DRY-RUN] Backend command: python -m vulnclaw.cli.main web --host 127.0.0.1 --port 7788
 [DRY-RUN] CLI command: python -m vulnclaw.cli.main
 ```
+
+## 11. README.md 簡中轉繁中
+
+依照要求，已將 `README.md` 從簡體中文轉為繁體中文，並額外潤飾成較自然的台灣繁中用語。
+
+### 修改檔案
+
+- `README.md`
+
+### 轉換方式
+
+- 使用 OpenCC `s2twp` 進行簡體中文到台灣繁體中文詞彙轉換。
+- 轉換後再人工修正 OpenCC 較不自然或未統一的詞彙。
+
+### 主要用語修正
+
+- `项目` / `項目` -> `專案`
+- `信息` -> `資訊`
+- `默认` / `默認` -> `預設`
+- `运行` -> `執行`
+- `用户` -> `使用者`
+- `端口` / `埠` -> `連接埠`
+- `配置` -> `設定`
+- `提供商` -> `提供者`
+- `自定义` / `自定義` -> `自訂`
+- `工作臺` -> `工作台`
+- `权限` / `許可權` -> `權限`
+- `脚本` / `指令碼` -> `腳本`
+- `当前` / `當前` -> `目前`
+
+### 檢查結果
+
+- 已用 `rg` 掃描常見簡中字與不自然詞殘留。
+- 已用 `git diff --check -- README.md` 檢查 Markdown diff，未發現 whitespace error。
+- `README_EN.md` 未修改，仍保留英文版。
