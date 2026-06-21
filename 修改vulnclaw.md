@@ -653,3 +653,90 @@ cmd /d /c "call start.cmd --dry-run"
 - 已用 `rg` 掃描常見簡中字與不自然詞殘留。
 - 已用 `git diff --check -- README.md` 檢查 Markdown diff，未發現 whitespace error。
 - `README_EN.md` 未修改，仍保留英文版。
+
+## 12. 修復 Web UI FastAPI missing
+
+這次遇到的問題：
+
+```text
+FastAPI: missing
+[!] FastAPI is missing. Install with pip install vulnclaw.
+```
+
+### 原因
+
+Web UI 需要 `fastapi` 與 `uvicorn`。如果目前執行 `vulnclaw web` 的 Python 環境沒有安裝 web extra，就會顯示 FastAPI missing。
+
+### 已執行修復
+
+已在目前 Python 環境重新安裝本地專案與 Web UI 依賴：
+
+```powershell
+python -m pip install -e ".[web]"
+```
+
+安裝後確認：
+
+```text
+fastapi 0.133.1
+uvicorn 0.41.0
+```
+
+### 修改檔案
+
+- `start.cmd`
+
+### start.cmd 新增保護
+
+`start.cmd` 現在會在啟動前先檢查：
+
+```cmd
+python -c "import fastapi, uvicorn"
+```
+
+如果缺少 FastAPI 或 uvicorn，會自動執行：
+
+```cmd
+python -m pip install -e ".[web]"
+```
+
+若安裝失敗，會停止啟動並提示手動執行：
+
+```cmd
+python -m pip install -e ".[web]"
+```
+
+### 驗證
+
+已執行：
+
+```powershell
+vulnclaw web --dry-run
+```
+
+結果顯示：
+
+```text
+FastAPI: installed
+Web UI dry-run completed.
+```
+
+已執行：
+
+```powershell
+cmd /d /c "call start.cmd --dry-run"
+```
+
+結果正常顯示 Web UI 與 CLI 啟動命令。
+
+也已實際啟動 Web UI 測試在 `127.0.0.1:7799`，並呼叫：
+
+```text
+http://127.0.0.1:7799/api/health
+```
+
+回應：
+
+```json
+{"status":"ok","service":"vulnclaw-web"}
+```

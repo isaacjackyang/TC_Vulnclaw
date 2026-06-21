@@ -18,6 +18,18 @@ if errorlevel 1 (
   exit /b 1
 )
 
+python -c "import fastapi, uvicorn" >nul 2>nul
+if errorlevel 1 (
+  echo [INFO] FastAPI or uvicorn was not found. Installing VulnClaw web dependencies...
+  python -m pip install -e ".[web]"
+  if errorlevel 1 (
+    echo [ERROR] Failed to install Web UI dependencies.
+    echo [ERROR] Try running: python -m pip install -e ".[web]"
+    pause
+    exit /b 1
+  )
+)
+
 if defined DRY_RUN (
   echo [DRY-RUN] Root: %ROOT%
   echo [DRY-RUN] Web UI: %URL%
